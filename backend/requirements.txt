@@ -1,0 +1,8 @@
+fastapi>=0.110
+uvicorn[standard]>=0.29
+python-dotenv>=1.0
+langchain-core>=0.3
+langchain-text-splitters>=0.3
+langchain-google-genai>=2.0
+qdrant-client>=1.10
+pypdf>=4.0
