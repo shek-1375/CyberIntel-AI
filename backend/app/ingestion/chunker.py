@@ -3,11 +3,27 @@
 Small chunks give focused embeddings, so search returns the exact paragraph
 that answers a question. Overlap keeps sentences on a boundary findable.
 The splitter tries paragraph breaks first, then lines, then sentences.
+
+Day 2 addition: CONTEXTUAL CHUNK HEADERS.
+A chunk like "## Detection - search logs for ${jndi:ldap ..." never says
+"Log4Shell", because the title ended up in a different chunk. Search and the
+reranker then can't tell it belongs to the Log4Shell advisory. So we put the
+document title at the top of every chunk:
+
+    [Advisory Summary: Log4Shell (CVE-2021-44228) ...]
+    ## Detection
+    - Search web, proxy and application logs ...
 """
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from app.config import CHUNK_OVERLAP, CHUNK_SIZE
+
+
+def add_context_header(text: str, title: str | None) -> str:
+    if not title or text.lstrip().startswith("# " + title):
+        return text  # no title, or this chunk already starts with the title itself
+    return f"[{title}]\n{text}"
 
 
 def chunk_documents(docs: list[Document]) -> list[Document]:
@@ -19,4 +35,5 @@ def chunk_documents(docs: list[Document]) -> list[Document]:
     chunks = splitter.split_documents(docs)  # metadata is copied onto every chunk
     for i, c in enumerate(chunks):
         c.metadata["chunk_index"] = i
+        c.page_content = add_context_header(c.page_content, c.metadata.get("title"))
     return chunks

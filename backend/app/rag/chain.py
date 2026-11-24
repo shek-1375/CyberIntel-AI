@@ -4,11 +4,8 @@ The numbered passages let the model cite [1], [2]... and let the analyst
 check every claim. If the evidence doesn't cover the question, the model
 must say so instead of guessing.
 """
-from functools import lru_cache
-
-from langchain_google_genai import ChatGoogleGenerativeAI
-
-from app.config import CHAT_MODEL, GOOGLE_API_KEY
+from app.config import RERANK, SEARCH_MODE, TOP_K
+from app.llm import call_llm
 from app.retrieval.retriever import search
 
 PROMPT = """You are CyberIntel AI, an assistant for security analysts.
@@ -24,25 +21,40 @@ Question: {question}
 Answer:"""
 
 
-@lru_cache
-def get_llm() -> ChatGoogleGenerativeAI:
-    return ChatGoogleGenerativeAI(model=CHAT_MODEL, google_api_key=GOOGLE_API_KEY, temperature=0.1)
-
-
-def answer(question: str) -> dict:
-    passages = search(question)
+def answer(question: str, mode: str = SEARCH_MODE, use_rerank: bool = RERANK) -> dict:
+    retrieval = search(question, top_k=TOP_K, mode=mode, use_rerank=use_rerank)
+    passages = retrieval["results"]
     if not passages:
         return {"answer": "No documents indexed yet. Call POST /ingest first.", "sources": []}
 
     context = "\n\n".join(f"[{i}] ({p['source']})\n{p['text']}" for i, p in enumerate(passages, 1))
-    reply = get_llm().invoke(PROMPT.format(context=context, question=question)).content
-    if isinstance(reply, list):  # some Gemini versions return a list of content parts
-        reply = "".join(p.get("text", "") if isinstance(p, dict) else str(p) for p in reply)
+    model_used = None
+    try:
+        message, model_used = call_llm(PROMPT.format(context=context, question=question))
+        reply = message.content
+        if isinstance(reply, list):  # some Gemini versions return a list of content parts
+            reply = "".join(part.get("text", "") if isinstance(part, dict) else str(part) for part in reply)
+    except Exception as e:
+        # every model failed (e.g. all busy): tell the user instead of crashing with a 500
+        reply = f"Gemini could not answer right now ({type(e).__name__}). Please try again in a minute."
 
     return {
         "answer": reply,
+        "answer_model": model_used,
+        "search_mode": retrieval["mode"],
+        "reranked": retrieval["reranked"],
+        "rerank_model": retrieval["rerank_model"],
         "sources": [
-            {"id": i, "source": p["source"], "page": p.get("page"), "score": p["score"], "snippet": p["text"][:200]}
+            {
+                "id": i,
+                "source": p["source"],
+                "page": p.get("page"),
+                "dense_score": p.get("dense_score"),
+                "bm25_score": p.get("bm25_score"),
+                "rrf_score": p.get("rrf_score"),
+                "rerank_score": p.get("rerank_score"),
+                "snippet": p["text"][:200],
+            }
             for i, p in enumerate(passages, 1)
         ],
     }

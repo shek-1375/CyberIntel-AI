@@ -1,11 +1,18 @@
-# CyberIntel AI — Prototype
+# CyberIntel AI
 
-A small RAG prototype: ask questions about security advisories and get answers grounded in your documents, with citations.
+A RAG (Retrieval-Augmented Generation) assistant for security analysts: ask questions about security advisories and get answers grounded in your documents, with citations.
 
 ```
 documents ─► load ─► chunk ─► embed (Gemini) ─► Qdrant
-question  ─► embed ─► search Qdrant (top 4) ─► Gemini answers from evidence ─► answer + [1][2] citations
+
+question ─┬─► dense search  (Qdrant, meaning)  ─┐
+          └─► keyword search (BM25, exact words)┴─► RRF fusion ─► rerank (Gemini) ─► answer + [1][2] citations
 ```
+
+## Progress
+
+- **Day 1:** ingestion, chunking, Gemini embeddings, Qdrant vector search, cited answers
+- **Day 2:** hybrid search (BM25 + vectors with Reciprocal Rank Fusion), Gemini reranking, `/compare` endpoint, unit tests. See [docs/day2-hybrid-search.md](docs/day2-hybrid-search.md)
 
 ## Project layout
 
@@ -13,73 +20,67 @@ question  ─► embed ─► search Qdrant (top 4) ─► Gemini answers from e
 CyberIntel-AI/
 ├── backend/
 │   ├── app/
-│   │   ├── main.py                # FastAPI: /health /ingest /search /ask
+│   │   ├── main.py                # FastAPI: /health /ingest /search /compare /ask
 │   │   ├── config.py              # settings from .env
+│   │   ├── llm.py                 # shared Gemini chat model
+│   │   ├── text_utils.py          # tokenizer that keeps CVE IDs whole
 │   │   ├── ingestion/loader.py    # 1. read .md/.txt/.pdf
 │   │   ├── ingestion/chunker.py   # 2. split into chunks
 │   │   ├── embeddings/embedder.py # 3. Gemini embeddings
-│   │   ├── retrieval/retriever.py # 4. store + search in Qdrant
+│   │   ├── retrieval/
+│   │   │   ├── retriever.py       # 4. store in Qdrant + dense/keyword/hybrid search
+│   │   │   ├── bm25.py            #    keyword search (BM25, from scratch)
+│   │   │   ├── fusion.py          #    Reciprocal Rank Fusion
+│   │   │   └── reranker.py        #    Gemini reranking
 │   │   └── rag/chain.py           # 5. grounded answer with citations
+│   ├── tests/test_retrieval.py    # unit tests (no API key needed)
 │   ├── data/documents/            # sample advisories (add your own here)
 │   ├── .env.example
 │   └── requirements.txt
+├── docs/day2-hybrid-search.md
 ├── docker-compose.yml             # Qdrant
 └── README.md
 ```
 
-## Setup (Windows PowerShell)
+## Setup (Windows)
 
-```powershell
-# 1. Start Qdrant (needs Docker Desktop running), from the project root
+```bash
+# 1. Start Qdrant (Docker Desktop must be running), from the project root
 docker compose up -d
-# dashboard: http://localhost:6333/dashboard
 
 # 2. Python environment
 cd backend
 python -m venv venv
-.\venv\Scripts\activate
+source venv/Scripts/activate      # PowerShell: .\venv\Scripts\activate
 pip install -r requirements.txt
 
-# 3. API key
-copy .env.example .env
-# edit .env and paste your key from https://aistudio.google.com/apikey
+# 3. API key: copy .env.example to .env and add your Gemini key
 
-# 4. Run the API
-uvicorn app.main:app --reload
+# 4. Run
+uvicorn app.main:app --reload     # open http://localhost:8000/docs
 ```
-
-On WSL/Linux/macOS use `source venv/bin/activate` and `cp` instead of `copy`.
 
 ## Try it
 
-Open http://localhost:8000/docs and run, in order:
+1. `POST /ingest` indexes everything in `data/documents`
+2. `POST /compare` with `{"question": "How do I detect Log4Shell?"}` shows dense vs keyword vs hybrid vs hybrid+rerank
+3. `POST /ask` with `{"question": "Which Log4j versions fix CVE-2021-44228?"}`
 
-1. `GET /health` — checks Qdrant and that your key is set
-2. `POST /ingest` — indexes everything in `data/documents`
-3. `POST /search` — `{"question": "How do I detect Log4Shell?"}` shows the retrieved chunks and similarity scores
-4. `POST /ask` — same body, returns a cited answer
+`/search` and `/ask` accept `"mode": "dense" | "keyword" | "hybrid"` and `"rerank": true | false`.
 
-Good test questions:
-- "Which Log4j versions fix CVE-2021-44228?"
-- "What web shell was used in the MOVEit attacks?"
-- "How do ransomware operators stop victims recovering from backups?"
-- "What is the capital of France?" → should say the sources don't cover it (grounding check)
+## Tests
 
-To add your own data, drop PDFs or markdown files into `backend/data/documents` and call `/ingest` again.
+```bash
+cd backend
+python -m pytest -v
+```
 
-## Milestone 1 checklist
+## Roadmap
 
-- [ ] Virtual environment working
-- [ ] Dependencies installed
-- [ ] Gemini API key configured
-- [ ] Qdrant running locally
-- [ ] FastAPI backend running and `/ask` returns cited answers
-
-## Next steps (later phases)
-
-1. Hybrid search (BM25 + vectors) so exact IDs like `CVE-2023-34362` match reliably
-2. Reranking + a small retrieval evaluation set
-3. CVE lookups from NVD and CISA KEV
-4. MITRE ATT&CK mapping
+1. ~~RAG prototype~~
+2. ~~Hybrid search + reranking~~
+3. Retrieval evaluation (hit rate, MRR) and grounding checks
+4. CVE data from NVD / CISA KEV, MITRE ATT&CK mapping
 5. LangGraph investigation agent
-6. React dashboard, PostgreSQL, Docker deployment
+6. React dashboard, PostgreSQL
+7. Tests, Docker, deployment

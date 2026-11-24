@@ -6,3 +6,5 @@ langchain-text-splitters>=0.3
 langchain-google-genai>=2.0
 qdrant-client>=1.10
 pypdf>=4.0
+fastembed>=0.5
+pytest>=8.0
