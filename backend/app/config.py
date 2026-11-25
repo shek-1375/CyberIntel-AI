@@ -24,9 +24,11 @@ CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", "100"))
 TOP_K = int(os.getenv("TOP_K", "4"))
 
 # --- Day 2: hybrid search + reranking ---
-SEARCH_MODE = os.getenv("SEARCH_MODE", "hybrid")      # dense | keyword | hybrid
+SEARCH_MODE = os.getenv("SEARCH_MODE", "hybrid")      # dense | keyword | hybrid | auto
 CANDIDATES = int(os.getenv("CANDIDATES", "10"))       # how many each retriever fetches before fusion
 RRF_K = int(os.getenv("RRF_K", "60"))                 # Reciprocal Rank Fusion constant
+DENSE_WEIGHT = float(os.getenv("DENSE_WEIGHT", "1.0"))     # RRF weight for dense results
+KEYWORD_WEIGHT = float(os.getenv("KEYWORD_WEIGHT", "1.0")) # RRF weight for keyword results
 RERANK = os.getenv("RERANK", "true").lower() == "true"  # re-order the candidates before answering
 RERANKER = os.getenv("RERANKER", "cross-encoder")       # cross-encoder (local, free) | gemini
 CROSS_ENCODER_MODEL = os.getenv("CROSS_ENCODER_MODEL", "Xenova/ms-marco-MiniLM-L-6-v2")

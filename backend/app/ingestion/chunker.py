@@ -26,10 +26,12 @@ def add_context_header(text: str, title: str | None) -> str:
     return f"[{title}]\n{text}"
 
 
-def chunk_documents(docs: list[Document]) -> list[Document]:
+def chunk_documents(docs: list[Document], chunk_size: int | None = None, chunk_overlap: int | None = None) -> list[Document]:
+    """chunk_size / chunk_overlap default to the .env settings; the evaluation
+    script passes other values to compare chunk sizes."""
     splitter = RecursiveCharacterTextSplitter(
-        chunk_size=CHUNK_SIZE,
-        chunk_overlap=CHUNK_OVERLAP,
+        chunk_size=chunk_size or CHUNK_SIZE,
+        chunk_overlap=CHUNK_OVERLAP if chunk_overlap is None else chunk_overlap,
         separators=["\n\n", "\n", ". ", " ", ""],
     )
     chunks = splitter.split_documents(docs)  # metadata is copied onto every chunk

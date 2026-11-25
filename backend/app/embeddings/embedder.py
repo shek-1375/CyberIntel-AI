@@ -21,5 +21,12 @@ def embed_texts(texts: list[str]) -> list[list[float]]:
     return get_embedder().embed_documents(texts)
 
 
+@lru_cache(maxsize=1024)
+def _embed_query_cached(text: str) -> tuple[float, ...]:
+    return tuple(get_embedder().embed_query(text))
+
+
 def embed_query(text: str) -> list[float]:
-    return get_embedder().embed_query(text)
+    """Embed a question. Cached, so asking the same question again (e.g. during
+    evaluation, where every question runs in several search modes) costs no API call."""
+    return list(_embed_query_cached(text))

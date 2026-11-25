@@ -55,3 +55,12 @@ def tokenize(text: str) -> list[str]:
         if tok and tok not in STOPWORDS:
             tokens.append(stem(tok))
     return tokens
+
+
+# A CVE (CVE-2021-44228) or an ATT&CK technique / mitigation ID (T1059, T1059.001, M1050)
+SECURITY_ID_RE = re.compile(r"\b(CVE-\d{4}-\d{4,7}|[TM]\d{4}(\.\d{3})?)\b", re.IGNORECASE)
+
+
+def has_security_id(text: str) -> bool:
+    """True if the text names a CVE or an ATT&CK ID. Used by the "auto" search mode."""
+    return bool(SECURITY_ID_RE.search(text or ""))

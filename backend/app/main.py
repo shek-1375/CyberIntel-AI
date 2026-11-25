@@ -14,9 +14,9 @@ from app.ingestion.loader import load_directory
 from app.rag.chain import answer
 from app.retrieval import retriever
 
-app = FastAPI(title="CyberIntel AI", version="0.2.1 (Day 2: hybrid search + reranking)")
+app = FastAPI(title="CyberIntel AI", version="0.3.0 (Day 3: evaluation + grounding checks)")
 
-Mode = Literal["dense", "keyword", "hybrid"]
+Mode = Literal["dense", "keyword", "hybrid", "auto"]
 
 
 class Question(BaseModel):
@@ -52,7 +52,7 @@ def ingest():
 
 @app.post("/search")
 def search(q: Question):
-    """Retrieval only (no answer). Choose mode: dense, keyword or hybrid, and rerank on/off."""
+    """Retrieval only (no answer). Choose mode: dense, keyword, hybrid or auto, and rerank on/off."""
     res = retriever.search(q.question, top_k=TOP_K, mode=q.mode, use_rerank=q.rerank)
     for r in res["results"]:
         r["text"] = r["text"][:300]
@@ -74,12 +74,14 @@ def compare(q: CompareRequest):
     _, keyword = top("keyword")
     _, hybrid = top("hybrid")
     reranked_res, reranked = top("hybrid", use_rerank=True)
+    _, auto = top("auto")
     return {
         "question": q.question,
         "dense": dense,
         "keyword": keyword,
         "hybrid": hybrid,
         "hybrid + rerank": reranked,
+        "auto (hybrid if the question has a CVE/ATT&CK ID, else dense)": auto,
         "rerank_worked": reranked_res["reranked"],
         "rerank_model": reranked_res["rerank_model"],
     }
@@ -88,3 +90,28 @@ def compare(q: CompareRequest):
 @app.post("/ask")
 def ask(q: Question):
     return answer(q.question, mode=q.mode, use_rerank=q.rerank)
+
+
+class EvaluateRequest(BaseModel):
+    include_answers: bool = False
+
+
+@app.post("/evaluate")
+def evaluate(req: EvaluateRequest):
+    """Score every search mode on the evaluation set (eval/eval_set.json).
+
+    Returns Hit@1, Hit@4 and MRR per mode and writes eval/results/latest.md.
+    include_answers=true also generates answers with Gemini and checks grounding
+    (slower: about a minute). For the chunk size experiment use the script:
+    python -m scripts.evaluate --chunk-sizes 400,800,1200
+    """
+    from app.evaluation.runner import evaluate_answers, evaluate_retrieval, write_report
+
+    retrieval = evaluate_retrieval()
+    answers = evaluate_answers() if req.include_answers else None
+    report = write_report(retrieval, None, answers)
+    summary = {name: {m: v for m, v in r.items() if m != "by_type"} for name, r in retrieval["configs"].items()}
+    out = {"retrieval": summary, "report_file": str(report)}
+    if answers:
+        out["answers"] = {k: v for k, v in answers.items() if k != "rows"}
+    return out

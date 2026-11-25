@@ -3,9 +3,13 @@
 The numbered passages let the model cite [1], [2]... and let the analyst
 check every claim. If the evidence doesn't cover the question, the model
 must say so instead of guessing.
+
+Day 3: every answer is checked by grounding.py (plain code, no AI) for invalid
+citations and CVE IDs that don't appear in the sources.
 """
 from app.config import RERANK, SEARCH_MODE, TOP_K
 from app.llm import call_llm
+from app.rag.grounding import check_grounding
 from app.retrieval.retriever import search
 
 PROMPT = """You are CyberIntel AI, an assistant for security analysts.
@@ -25,7 +29,7 @@ def answer(question: str, mode: str = SEARCH_MODE, use_rerank: bool = RERANK) ->
     retrieval = search(question, top_k=TOP_K, mode=mode, use_rerank=use_rerank)
     passages = retrieval["results"]
     if not passages:
-        return {"answer": "No documents indexed yet. Call POST /ingest first.", "sources": []}
+        return {"answer": "No documents indexed yet. Call POST /ingest first.", "answer_model": None, "sources": [], "grounding": {}}
 
     context = "\n\n".join(f"[{i}] ({p['source']})\n{p['text']}" for i, p in enumerate(passages, 1))
     model_used = None
@@ -44,6 +48,7 @@ def answer(question: str, mode: str = SEARCH_MODE, use_rerank: bool = RERANK) ->
         "search_mode": retrieval["mode"],
         "reranked": retrieval["reranked"],
         "rerank_model": retrieval["rerank_model"],
+        "grounding": check_grounding(reply, [p["text"] for p in passages]) if model_used else {},
         "sources": [
             {
                 "id": i,

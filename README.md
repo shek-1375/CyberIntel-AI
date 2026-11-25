@@ -12,7 +12,8 @@ question ─┬─► dense search  (Qdrant, meaning)  ─┐
 ## Progress
 
 - **Day 1:** ingestion, chunking, Gemini embeddings, Qdrant vector search, cited answers
-- **Day 2:** hybrid search (BM25 + vectors with Reciprocal Rank Fusion), Gemini reranking, `/compare` endpoint, unit tests. See [docs/day2-hybrid-search.md](docs/day2-hybrid-search.md)
+- **Day 2:** hybrid search (BM25 + vectors with Reciprocal Rank Fusion), stemming, contextual chunk headers, local cross-encoder reranking, model fallback, `/compare`. See [docs/day2-hybrid-search.md](docs/day2-hybrid-search.md)
+- **Day 3:** evaluation set (21 questions), Hit@1 / Hit@4 / MRR for every search mode, chunk size experiment, automatic grounding checks on every answer. See [docs/day3-evaluation.md](docs/day3-evaluation.md) and the latest results in [backend/eval/results/latest.md](backend/eval/results/latest.md)
 
 ## Project layout
 
@@ -20,7 +21,7 @@ question ─┬─► dense search  (Qdrant, meaning)  ─┐
 CyberIntel-AI/
 ├── backend/
 │   ├── app/
-│   │   ├── main.py                # FastAPI: /health /ingest /search /compare /ask
+│   │   ├── main.py                # FastAPI: /health /ingest /search /compare /ask /evaluate
 │   │   ├── config.py              # settings from .env
 │   │   ├── llm.py                 # shared Gemini chat model
 │   │   ├── text_utils.py          # tokenizer that keeps CVE IDs whole
@@ -32,12 +33,17 @@ CyberIntel-AI/
 │   │   │   ├── bm25.py            #    keyword search (BM25, from scratch)
 │   │   │   ├── fusion.py          #    Reciprocal Rank Fusion
 │   │   │   └── reranker.py        #    Gemini reranking
-│   │   └── rag/chain.py           # 5. grounded answer with citations
-│   ├── tests/test_retrieval.py    # unit tests (no API key needed)
+│   │   ├── rag/chain.py           # 5. grounded answer with citations
+│   │   ├── rag/grounding.py       #    checks answers for invalid citations / invented CVE IDs
+│   │   └── evaluation/            #    metrics (Hit@k, MRR) and the evaluation runner
+│   ├── eval/eval_set.json         # 21 labelled evaluation questions
+│   ├── eval/results/              # evaluation reports
+│   ├── scripts/evaluate.py        # python -m scripts.evaluate
+│   ├── tests/                     # unit tests (no API key needed)
 │   ├── data/documents/            # sample advisories (add your own here)
 │   ├── .env.example
 │   └── requirements.txt
-├── docs/day2-hybrid-search.md
+├── docs/                          # day-by-day write-ups
 ├── docker-compose.yml             # Qdrant
 └── README.md
 ```
@@ -68,6 +74,14 @@ uvicorn app.main:app --reload     # open http://localhost:8000/docs
 
 `/search` and `/ask` accept `"mode": "dense" | "keyword" | "hybrid"` and `"rerank": true | false`.
 
+## Evaluate
+
+```bash
+cd backend
+python -m scripts.evaluate --chunk-sizes 400,800,1200 --answers
+```
+Writes `eval/results/latest.md` with Hit@1, Hit@4 and MRR per search mode, a chunk size comparison and answer grounding results.
+
 ## Tests
 
 ```bash
@@ -79,7 +93,7 @@ python -m pytest -v
 
 1. ~~RAG prototype~~
 2. ~~Hybrid search + reranking~~
-3. Retrieval evaluation (hit rate, MRR) and grounding checks
+3. ~~Retrieval evaluation (hit rate, MRR) and grounding checks~~
 4. CVE data from NVD / CISA KEV, MITRE ATT&CK mapping
 5. LangGraph investigation agent
 6. React dashboard, PostgreSQL
