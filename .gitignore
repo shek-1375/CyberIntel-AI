@@ -3,3 +3,9 @@ venv/
 __pycache__/
 *.pyc
 node_modules/
+.pytest_cache/
+
+# Day 4: downloaded threat-intel feeds (large, refreshed automatically)
+backend/data/intel/
+# generated from the live KEV feed by POST /intel/kev/ingest
+backend/data/documents/cisa-kev-recent.md

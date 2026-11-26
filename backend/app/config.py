@@ -34,3 +34,9 @@ RERANKER = os.getenv("RERANKER", "cross-encoder")       # cross-encoder (local, 
 CROSS_ENCODER_MODEL = os.getenv("CROSS_ENCODER_MODEL", "Xenova/ms-marco-MiniLM-L-6-v2")
 
 DOCUMENTS_DIR = BACKEND_DIR / "data" / "documents"
+
+# --- Day 4: live threat intelligence ---
+NVD_API_KEY = os.getenv("NVD_API_KEY", "")            # optional: raises NVD limit from 5 to 50 requests / 30 s
+LIVE_INTEL = os.getenv("LIVE_INTEL", "true").lower() == "true"  # add live NVD/KEV/EPSS facts to /ask for CVE questions
+INTEL_CACHE_DIR = BACKEND_DIR / "data" / "intel"      # downloaded feeds are cached here (not committed to Git)
+HTTP_TIMEOUT = float(os.getenv("HTTP_TIMEOUT", "30"))

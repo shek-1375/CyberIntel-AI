@@ -1,27 +1,150 @@
 {
-  "description": "CyberIntel AI evaluation set. Each answerable question names the document and a short evidence phrase copied from it. A retrieved chunk counts as correct if it comes from that document and contains the phrase. Using a phrase instead of a chunk number means the set keeps working when chunk sizes change.",
-  "questions": [
-    {"id": "q01", "type": "exact_id", "question": "CVE-2021-44228", "source": "log4shell-advisory.md", "evidence": "Log4j 2 versions 2.0-beta9 through 2.14.1"},
-    {"id": "q02", "type": "exact_id", "question": "What is CVE-2023-35708?", "source": "moveit-transfer-advisory.md", "evidence": "CVE-2023-35708"},
-    {"id": "q03", "type": "exact_id", "question": "Which ATT&CK technique is T1490?", "source": "ransomware-playbook.md", "evidence": "(T1490)"},
-    {"id": "q04", "type": "factual", "question": "Which Log4j versions fix Log4Shell?", "source": "log4shell-advisory.md", "evidence": "Upgrade to 2.17.1 or later on Java 8"},
-    {"id": "q05", "type": "detection", "question": "How do I detect Log4Shell exploitation?", "source": "log4shell-advisory.md", "evidence": "Search web, proxy and application logs"},
-    {"id": "q06", "type": "mitigation", "question": "How can I mitigate Log4Shell if I cannot patch right away?", "source": "log4shell-advisory.md", "evidence": "remove the JndiLookup class from the classpath"},
-    {"id": "q07", "type": "paraphrase", "question": "Why can a logged User-Agent header lead to code execution in a Java app?", "source": "log4shell-advisory.md", "evidence": "a logged string cause the application to contact a remote LDAP"},
-    {"id": "q08", "type": "factual", "question": "Who was behind the MOVEit Transfer attacks?", "source": "moveit-transfer-advisory.md", "evidence": "attributed to the CL0P ransomware and extortion group"},
-    {"id": "q09", "type": "factual", "question": "What web shell was dropped on MOVEit servers?", "source": "moveit-transfer-advisory.md", "evidence": "tracked as LEMURLOOT"},
-    {"id": "q10", "type": "detection", "question": "What should I look for in web server logs to spot MOVEit compromise?", "source": "moveit-transfer-advisory.md", "evidence": "requests to `human2.aspx`, or any request carrying an `X-siLock-Comment` header"},
-    {"id": "q11", "type": "paraphrase", "question": "A managed file transfer product was hit by SQL injection and used for mass data theft. What happened?", "source": "moveit-transfer-advisory.md", "evidence": "critical SQL injection vulnerability in the web application of Progress MOVEit Transfer"},
-    {"id": "q12", "type": "mitigation", "question": "What should we do if we can't patch MOVEit immediately?", "source": "moveit-transfer-advisory.md", "evidence": "block HTTP and HTTPS traffic to MOVEit Transfer from the internet"},
-    {"id": "q13", "type": "factual", "question": "How do ransomware operators get initial access?", "source": "ransomware-playbook.md", "evidence": "most common initial-access routes"},
-    {"id": "q14", "type": "factual", "question": "How do ransomware operators stop victims from recovering backups?", "source": "ransomware-playbook.md", "evidence": "deleting volume shadow copies"},
-    {"id": "q15", "type": "mitigation", "question": "What should we do in the first hours of a ransomware incident?", "source": "ransomware-playbook.md", "evidence": "Isolate affected hosts"},
-    {"id": "q16", "type": "paraphrase", "question": "How do attackers steal domain password hashes during an intrusion?", "source": "ransomware-playbook.md", "evidence": "dumping LSASS memory or the NTDS.dit database"},
-    {"id": "q17", "type": "mitigation", "question": "What is the KRBTGT reset advice after domain compromise?", "source": "ransomware-playbook.md", "evidence": "Reset the KRBTGT account password twice"},
-    {"id": "q18", "type": "detection", "question": "Which commands should trigger an alert because they disable recovery?", "source": "ransomware-playbook.md", "evidence": "bcdedit /set recoveryenabled no"},
-
-    {"id": "u01", "type": "unanswerable", "question": "What is the CVSS score of CVE-2024-3400?", "answerable": false},
-    {"id": "u02", "type": "unanswerable", "question": "How do I configure a Palo Alto firewall VPN?", "answerable": false},
-    {"id": "u03", "type": "unanswerable", "question": "What is the capital of France?", "answerable": false}
-  ]
+ "description": "CyberIntel AI evaluation set. Each answerable question names the document and a short evidence phrase copied from it. A retrieved chunk counts as correct if it comes from that document and contains the phrase. Using a phrase instead of a chunk number means the set keeps working when chunk sizes change.",
+ "questions": [
+  {
+   "id": "q01",
+   "type": "exact_id",
+   "question": "CVE-2021-44228",
+   "source": "log4shell-advisory.md",
+   "evidence": "Log4j 2 versions 2.0-beta9 through 2.14.1"
+  },
+  {
+   "id": "q02",
+   "type": "exact_id",
+   "question": "What is CVE-2023-35708?",
+   "source": "moveit-transfer-advisory.md",
+   "evidence": "CVE-2023-35708"
+  },
+  {
+   "id": "q03",
+   "type": "exact_id",
+   "question": "Which ATT&CK technique is T1490?",
+   "source": "ransomware-playbook.md",
+   "evidence": "(T1490)"
+  },
+  {
+   "id": "q04",
+   "type": "factual",
+   "question": "Which Log4j versions fix Log4Shell?",
+   "source": "log4shell-advisory.md",
+   "evidence": "Upgrade to 2.17.1 or later on Java 8"
+  },
+  {
+   "id": "q05",
+   "type": "detection",
+   "question": "How do I detect Log4Shell exploitation?",
+   "source": "log4shell-advisory.md",
+   "evidence": "Search web, proxy and application logs"
+  },
+  {
+   "id": "q06",
+   "type": "mitigation",
+   "question": "How can I mitigate Log4Shell if I cannot patch right away?",
+   "source": "log4shell-advisory.md",
+   "evidence": "remove the JndiLookup class from the classpath"
+  },
+  {
+   "id": "q07",
+   "type": "paraphrase",
+   "question": "Why can a logged User-Agent header lead to code execution in a Java app?",
+   "source": "log4shell-advisory.md",
+   "evidence": "a logged string cause the application to contact a remote LDAP"
+  },
+  {
+   "id": "q08",
+   "type": "factual",
+   "question": "Who was behind the MOVEit Transfer attacks?",
+   "source": "moveit-transfer-advisory.md",
+   "evidence": "attributed to the CL0P ransomware and extortion group"
+  },
+  {
+   "id": "q09",
+   "type": "factual",
+   "question": "What web shell was dropped on MOVEit servers?",
+   "source": "moveit-transfer-advisory.md",
+   "evidence": "tracked as LEMURLOOT"
+  },
+  {
+   "id": "q10",
+   "type": "detection",
+   "question": "What should I look for in web server logs to spot MOVEit compromise?",
+   "source": "moveit-transfer-advisory.md",
+   "evidence": "requests to `human2.aspx`, or any request carrying an `X-siLock-Comment` header"
+  },
+  {
+   "id": "q11",
+   "type": "paraphrase",
+   "question": "A managed file transfer product was hit by SQL injection and used for mass data theft. What happened?",
+   "source": "moveit-transfer-advisory.md",
+   "evidence": "critical SQL injection vulnerability in the web application of Progress MOVEit Transfer"
+  },
+  {
+   "id": "q12",
+   "type": "mitigation",
+   "question": "What should we do if we can't patch MOVEit immediately?",
+   "source": "moveit-transfer-advisory.md",
+   "evidence": "block HTTP and HTTPS traffic to MOVEit Transfer from the internet"
+  },
+  {
+   "id": "q13",
+   "type": "factual",
+   "question": "How do ransomware operators get initial access?",
+   "source": "ransomware-playbook.md",
+   "evidence": "most common initial-access routes"
+  },
+  {
+   "id": "q14",
+   "type": "factual",
+   "question": "How do ransomware operators stop victims from recovering backups?",
+   "source": "ransomware-playbook.md",
+   "evidence": "deleting volume shadow copies"
+  },
+  {
+   "id": "q15",
+   "type": "mitigation",
+   "question": "What should we do in the first hours of a ransomware incident?",
+   "source": "ransomware-playbook.md",
+   "evidence": "Isolate affected hosts"
+  },
+  {
+   "id": "q16",
+   "type": "paraphrase",
+   "question": "How do attackers steal domain password hashes during an intrusion?",
+   "source": "ransomware-playbook.md",
+   "evidence": "dumping LSASS memory or the NTDS.dit database"
+  },
+  {
+   "id": "q17",
+   "type": "mitigation",
+   "question": "What is the KRBTGT reset advice after domain compromise?",
+   "source": "ransomware-playbook.md",
+   "evidence": "Reset the KRBTGT account password twice"
+  },
+  {
+   "id": "q18",
+   "type": "detection",
+   "question": "Which commands should trigger an alert because they disable recovery?",
+   "source": "ransomware-playbook.md",
+   "evidence": "bcdedit /set recoveryenabled no"
+  },
+  {
+   "id": "u01",
+   "type": "unanswerable",
+   "question": "What is the ticket number of our internal Log4Shell remediation project?",
+   "answerable": false,
+   "note": "Changed on Day 4: the old question (CVSS of CVE-2024-3400) is now answerable from live NVD data."
+  },
+  {
+   "id": "u02",
+   "type": "unanswerable",
+   "question": "How do I configure a Palo Alto firewall VPN?",
+   "answerable": false
+  },
+  {
+   "id": "u03",
+   "type": "unanswerable",
+   "question": "What is the capital of France?",
+   "answerable": false
+  }
+ ]
 }

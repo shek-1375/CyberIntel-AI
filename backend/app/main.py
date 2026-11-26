@@ -12,9 +12,12 @@ from app.config import DOCUMENTS_DIR, GOOGLE_API_KEY, RERANK, SEARCH_MODE, TOP_K
 from app.ingestion.chunker import chunk_documents
 from app.ingestion.loader import load_directory
 from app.rag.chain import answer
+from app.intel.routes import router as intel_router
 from app.retrieval import retriever
 
-app = FastAPI(title="CyberIntel AI", version="0.3.0 (Day 3: evaluation + grounding checks)")
+app = FastAPI(title="CyberIntel AI", version="0.4.0 (Day 4: live threat intelligence)")
+
+app.include_router(intel_router)
 
 Mode = Literal["dense", "keyword", "hybrid", "auto"]
 
