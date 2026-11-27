@@ -9,3 +9,5 @@ node_modules/
 backend/data/intel/
 # generated from the live KEV feed by POST /intel/kev/ingest
 backend/data/documents/cisa-kev-recent.md
+# Day 5: investigation reports saved by scripts/investigate.py
+backend/reports/

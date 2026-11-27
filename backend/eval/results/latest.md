@@ -1,13 +1,13 @@
 # CyberIntel AI — Evaluation report
 
-Run: 2026-11-25 22:29  ·  questions: 18  ·  chunk size 1000, overlap 100  ·  top-k = 4
+Run: 2026-11-27 20:18  ·  questions: 18  ·  chunk size 1000, overlap 100  ·  top-k = 4
 
 ## 1. Retrieval quality by search mode
 
 | Mode | Hit@1 | Hit@4 | MRR |
 |---|---|---|---|
 | dense | 0.72 | 1.00 | 0.85 |
-| keyword | 0.50 | 0.89 | 0.65 |
+| keyword | 0.56 | 0.89 | 0.68 |
 | hybrid | 0.67 | 1.00 | 0.80 |
 | hybrid + rerank | 0.67 | 1.00 | 0.81 |
 | dense + rerank | 0.67 | 1.00 | 0.81 |
@@ -23,7 +23,7 @@ Run: 2026-11-25 22:29  ·  questions: 18  ·  chunk size 1000, overlap 100  ·  
 | detection | 1.00 | 0.67 | 0.83 | 1.00 | 1.00 | 0.83 | 1.00 | 1.00 | 1.00 |
 | exact_id | 0.44 | 0.75 | 0.61 | 0.58 | 0.58 | 0.61 | 0.58 | 0.61 | 0.58 |
 | factual | 0.90 | 0.48 | 0.85 | 0.65 | 0.65 | 0.90 | 0.65 | 0.90 | 0.65 |
-| mitigation | 1.00 | 0.75 | 1.00 | 1.00 | 1.00 | 1.00 | 1.00 | 1.00 | 1.00 |
+| mitigation | 1.00 | 0.88 | 1.00 | 1.00 | 1.00 | 1.00 | 1.00 | 1.00 | 1.00 |
 | paraphrase | 0.83 | 0.67 | 0.61 | 0.83 | 0.83 | 0.61 | 0.83 | 0.83 | 0.83 |
 
 ### Rank of the first correct chunk, per question (— = not in top 4)
@@ -44,7 +44,7 @@ Run: 2026-11-25 22:29  ·  questions: 18  ·  chunk size 1000, overlap 100  ·  
 | q12 | mitigation | What should we do if we can't patch MOVEit immediately? | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 |
 | q13 | factual | How do ransomware operators get initial access? | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 |
 | q14 | factual | How do ransomware operators stop victims from recovering bac | 2 | 4 | 4 | 4 | 4 | 2 | 4 | 2 | 4 |
-| q15 | mitigation | What should we do in the first hours of a ransomware inciden | 1 | 2 | 1 | 1 | 1 | 1 | 1 | 1 | 1 |
+| q15 | mitigation | What should we do in the first hours of a ransomware inciden | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 |
 | q16 | paraphrase | How do attackers steal domain password hashes during an intr | 1 | — | 3 | 2 | 2 | 3 | 2 | 1 | 2 |
 | q17 | mitigation | What is the KRBTGT reset advice after domain compromise? | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 |
 | q18 | detection | Which commands should trigger an alert because they disable  | 1 | — | 2 | 1 | 1 | 2 | 1 | 1 | 1 |

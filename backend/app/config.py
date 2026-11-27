@@ -10,6 +10,7 @@ load_dotenv(BACKEND_DIR / ".env", override=True)
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY", "")
 CHAT_MODEL = os.getenv("GEMINI_CHAT_MODEL", "gemini-3.8-flash")
 RERANK_MODEL = os.getenv("GEMINI_RERANK_MODEL", "gemini-3.5-flash-lite")
+LLM_TIMEOUT = float(os.getenv("LLM_TIMEOUT", "30"))     # seconds before giving up on one Gemini call
 # Tried in order when a model is busy (503) or unavailable
 FALLBACK_MODELS = [
     m.strip() for m in os.getenv("GEMINI_FALLBACK_MODELS", "gemini-3.5-flash-lite,gemini-3.1-flash-lite").split(",") if m.strip()

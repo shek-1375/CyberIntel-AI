@@ -57,16 +57,26 @@ def search(term: str, limit: int = 20, entries: list[dict] | None = None) -> lis
 
 
 def as_markdown(entries: list[dict]) -> str:
-    """Render KEV entries as a document, so the RAG index can answer questions about them."""
+    """Render KEV entries as a document, so the RAG index can answer questions about them.
+
+    Every line repeats its CVE ID, and long fields are shortened so every line fits
+    well inside one chunk. Then, if a long entry has to be split, the split happens
+    between lines, and each piece still says which CVE it is about, so details from
+    two different vulnerabilities can't get mixed up.
+    """
+    def short(text, limit):
+        text = " ".join((text or "").split())
+        return text if len(text) <= limit else text[:limit].rsplit(" ", 1)[0] + " ..."
+
     lines = ["# CISA Known Exploited Vulnerabilities (most recent entries)", ""]
     for e in entries:
+        cve = e["cve_id"]
         lines += [
-            f"## {e['cve_id']}: {e['vendor']} {e['product']}",
-            "",
-            f"{e['name']}. {e['description']}",
-            "",
-            f"Added to KEV on {e['date_added']}; federal due date {e['due_date']}. "
-            f"Known ransomware use: {e['ransomware_use']}. Required action: {e['required_action']}",
+            f"## {cve}: {e['vendor']} {e['product']}",
+            f"{cve} summary: {short(e['name'], 150)}. {short(e['description'], 550)}",
+            f"{cve} status: added to KEV on {e['date_added']}; federal due date {e['due_date']}; "
+            f"known ransomware use: {e['ransomware_use']}.",
+            f"{cve} required action: {short(e['required_action'], 400)}",
             "",
         ]
     return "\n".join(lines)

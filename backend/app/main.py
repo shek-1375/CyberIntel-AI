@@ -6,7 +6,8 @@ Try it at:          http://localhost:8000/docs
 from typing import Literal
 
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from fastapi.responses import PlainTextResponse
+from pydantic import BaseModel, Field
 
 from app.config import DOCUMENTS_DIR, GOOGLE_API_KEY, RERANK, SEARCH_MODE, TOP_K
 from app.ingestion.chunker import chunk_documents
@@ -15,7 +16,7 @@ from app.rag.chain import answer
 from app.intel.routes import router as intel_router
 from app.retrieval import retriever
 
-app = FastAPI(title="CyberIntel AI", version="0.4.0 (Day 4: live threat intelligence)")
+app = FastAPI(title="CyberIntel AI", version="0.5.0 (Day 5: LangGraph investigation agent)")
 
 app.include_router(intel_router)
 
@@ -118,3 +119,34 @@ def evaluate(req: EvaluateRequest):
     if answers:
         out["answers"] = {k: v for k, v in answers.items() if k != "rows"}
     return out
+
+
+# ---------------------------------------------------------------- Day 5: agent
+class InvestigateRequest(BaseModel):
+    query: str = Field(min_length=5, max_length=2000,
+                       examples=["Investigate CVE-2023-34362 and recommend detections and mitigations"])
+
+
+@app.post("/investigate")
+def investigate(req: InvestigateRequest):
+    """Run the LangGraph investigation agent: entities -> live CVE intel -> document evidence
+    -> ATT&CK mapping -> recommendations -> report. Takes 10-60 seconds (several Gemini calls)."""
+    from app.agent.graph import run_investigation
+
+    return run_investigation(req.query)
+
+
+@app.post("/investigate/report", response_class=PlainTextResponse)
+def investigate_report(req: InvestigateRequest):
+    """Same investigation, but returns only the Markdown report (easy to read or save)."""
+    from app.agent.graph import run_investigation
+
+    return run_investigation(req.query)["report_markdown"]
+
+
+@app.get("/agent/graph", response_class=PlainTextResponse)
+def agent_graph():
+    """The agent's workflow as a Mermaid diagram (paste it into https://mermaid.live to see it)."""
+    from app.agent.graph import graph_mermaid
+
+    return graph_mermaid()

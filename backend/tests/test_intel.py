@@ -3,6 +3,8 @@
 Uses small hand-made samples shaped like the real NVD / KEV / EPSS / ATT&CK data,
 so no internet connection is needed.   Run from backend/:  python -m pytest -v
 """
+import re
+
 from app.intel import attack, kev, nvd
 from app.intel.epss import parse_epss
 from app.intel.risk import cve_priority
@@ -132,9 +134,18 @@ def test_user_interaction_suggests_client_execution_only_if_known():
 
 
 # ---------------- Day 4 fix: embedding rate limits
-def test_rate_limit_detection_and_retry_delay():
+def stub_gemini_library_if_missing():
+    """Use the real Gemini library when installed; only fake it where it isn't (e.g. a bare CI machine).
+    Faking it unconditionally would leak into other tests that run in the same process."""
     import sys, types
-    sys.modules.setdefault("langchain_google_genai", types.SimpleNamespace(GoogleGenerativeAIEmbeddings=object))
+    try:
+        import langchain_google_genai  # noqa: F401
+    except ImportError:
+        sys.modules["langchain_google_genai"] = types.SimpleNamespace(
+            GoogleGenerativeAIEmbeddings=object, ChatGoogleGenerativeAI=object)
+
+def test_rate_limit_detection_and_retry_delay():
+    stub_gemini_library_if_missing()
     from app.embeddings.embedder import is_rate_limit, retry_delay
     err = Exception("429 RESOURCE_EXHAUSTED ... Please retry in 4.624848916s.")
     assert is_rate_limit(err)
@@ -144,8 +155,7 @@ def test_rate_limit_detection_and_retry_delay():
 
 
 def test_embed_texts_waits_and_retries_on_429(monkeypatch):
-    import sys, types
-    sys.modules.setdefault("langchain_google_genai", types.SimpleNamespace(GoogleGenerativeAIEmbeddings=object))
+    stub_gemini_library_if_missing()
     from app.embeddings import embedder
 
     calls = {"n": 0}
@@ -163,3 +173,26 @@ def test_embed_texts_waits_and_retries_on_429(monkeypatch):
     out = embedder.embed_texts(["a", "bb", "ccc", "dddd", "eeeee"], batch_size=2)
     assert out == [[1.0], [2.0], [3.0], [4.0], [5.0]]   # all chunks embedded, in order
     assert len(slept) == 1                              # waited once, then retried
+
+
+# ---------------- Day 5 fix: KEV entries must not be cut across chunks
+def test_every_kev_chunk_names_its_cve():
+    """Short entries stay whole; a very long entry may be split, but every piece still names its CVE."""
+    from langchain_core.documents import Document
+    from app.ingestion.chunker import chunk_documents
+
+    entries = [
+        {"cve_id": f"CVE-2026-{1000 + i}", "vendor": "Vendor", "product": f"Product {i}",
+         "name": f"Product {i} vulnerability", "description": "An attacker can do something bad. " * (60 if i == 5 else 6),
+         "date_added": "2026-11-20", "due_date": "2026-12-11", "ransomware_use": "Unknown",
+         "required_action": "Apply mitigations per vendor instructions."}
+        for i in range(30)
+    ]
+    doc = Document(page_content=kev.as_markdown(entries), metadata={"source": "cisa-kev-recent.md", "title": "KEV"})
+    for chunk in chunk_documents([doc]):
+        body = chunk.page_content.split("\n", 1)[1]           # drop the "[KEV]" context header
+        for line in body.splitlines():
+            if line.strip() and not line.startswith("#"):
+                assert re.search(r"CVE-2026-\d+", line), line[:120]
+        for cve in set(re.findall(r"CVE-2026-\d+ required action", body)):
+            assert cve.split()[0] in body                      # an action always sits with its own CVE ID
