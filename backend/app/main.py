@@ -1,22 +1,38 @@
 """CyberIntel AI - API.
 
 Run from backend/:  uvicorn app.main:app --reload
-Try it at:          http://localhost:8000/docs
+Try it at:          http://localhost:8000/docs   (the React dashboard runs at http://localhost:5173)
 """
+import logging
+from contextlib import asynccontextmanager
 from typing import Literal
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel, Field
 
-from app.config import DOCUMENTS_DIR, GOOGLE_API_KEY, RERANK, SEARCH_MODE, TOP_K
+from app import db
+from app.config import BACKEND_DIR, DOCUMENTS_DIR, FRONTEND_ORIGINS, GOOGLE_API_KEY, RERANK, SEARCH_MODE, TOP_K
 from app.ingestion.chunker import chunk_documents
 from app.ingestion.loader import load_directory
 from app.rag.chain import answer
 from app.intel.routes import router as intel_router
 from app.retrieval import retriever
 
-app = FastAPI(title="CyberIntel AI", version="0.5.0 (Day 5: LangGraph investigation agent)")
+log = logging.getLogger("cyberintel")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    db.create_tables()  # creates the history tables if needed; logs a warning if PostgreSQL is down
+    yield
+
+
+app = FastAPI(title="CyberIntel AI", version="0.6.0 (Day 6: dashboard + history)", lifespan=lifespan)
+
+# CORS lets the dashboard (a different "origin": localhost:5173) call this API from the browser
+app.add_middleware(CORSMiddleware, allow_origins=FRONTEND_ORIGINS, allow_methods=["*"], allow_headers=["*"])
 
 app.include_router(intel_router)
 
@@ -40,7 +56,8 @@ def health():
         qdrant = "ok"
     except Exception as e:
         chunks, qdrant = 0, f"error: {e}"
-    return {"api": "ok", "qdrant": qdrant, "indexed_chunks": chunks, "gemini_key_set": bool(GOOGLE_API_KEY)}
+    return {"api": "ok", "qdrant": qdrant, "indexed_chunks": chunks, "gemini_key_set": bool(GOOGLE_API_KEY),
+            "database": db.database_status()}
 
 
 @app.post("/ingest")
@@ -93,7 +110,13 @@ def compare(q: CompareRequest):
 
 @app.post("/ask")
 def ask(q: Question):
-    return answer(q.question, mode=q.mode, use_rerank=q.rerank)
+    result = answer(q.question, mode=q.mode, use_rerank=q.rerank)
+    try:
+        result["log_id"] = db.log_question(q.question, result)
+    except Exception as e:  # history is a bonus: never fail the answer because the database is down
+        log.warning("Could not log question: %s", str(e).splitlines()[0])
+        result["log_id"] = None
+    return result
 
 
 class EvaluateRequest(BaseModel):
@@ -133,7 +156,14 @@ def investigate(req: InvestigateRequest):
     -> ATT&CK mapping -> recommendations -> report. Takes 10-60 seconds (several Gemini calls)."""
     from app.agent.graph import run_investigation
 
-    return run_investigation(req.query)
+    result = run_investigation(req.query)
+    try:
+        result["id"] = db.save_investigation(result)
+        result["saved"] = True
+    except Exception as e:
+        log.warning("Could not save investigation: %s", str(e).splitlines()[0])
+        result["id"], result["saved"] = None, False
+    return result
 
 
 @app.post("/investigate/report", response_class=PlainTextResponse)
@@ -150,3 +180,66 @@ def agent_graph():
     from app.agent.graph import graph_mermaid
 
     return graph_mermaid()
+
+
+# ---------------------------------------------------------------- Day 6: history
+def _db_error(e: Exception):
+    raise HTTPException(503, f"History database unavailable (is the postgres container running?): {str(e).splitlines()[0]}")
+
+
+@app.get("/investigations")
+def investigations(limit: int = 50):
+    """Saved investigations, newest first."""
+    try:
+        return db.list_investigations(limit)
+    except Exception as e:
+        _db_error(e)
+
+
+@app.get("/investigations/{investigation_id}")
+def investigation(investigation_id: int):
+    """One saved investigation with its full result and report."""
+    try:
+        found = db.get_investigation(investigation_id)
+    except Exception as e:
+        _db_error(e)
+    if not found:
+        raise HTTPException(404, f"No investigation with id {investigation_id}")
+    return found
+
+
+@app.get("/investigations/{investigation_id}/report.md", response_class=PlainTextResponse)
+def investigation_report(investigation_id: int):
+    """Download a saved report as a Markdown file."""
+    found = investigation(investigation_id)
+    return PlainTextResponse(found.get("report_markdown", ""), headers={
+        "Content-Disposition": f'attachment; filename="cyberintel-investigation-{investigation_id}.md"'})
+
+
+@app.delete("/investigations/{investigation_id}")
+def remove_investigation(investigation_id: int):
+    try:
+        deleted = db.delete_investigation(investigation_id)
+    except Exception as e:
+        _db_error(e)
+    if not deleted:
+        raise HTTPException(404, f"No investigation with id {investigation_id}")
+    return {"deleted": investigation_id}
+
+
+@app.get("/questions")
+def questions(limit: int = 50):
+    """Recently asked questions and whether each answer was grounded."""
+    try:
+        return db.list_questions(limit)
+    except Exception as e:
+        _db_error(e)
+
+
+@app.get("/evaluation/latest", response_class=PlainTextResponse)
+def latest_evaluation():
+    """The latest evaluation report (Markdown), written by scripts/evaluate.py."""
+    path = BACKEND_DIR / "eval" / "results" / "latest.md"
+    if not path.exists():
+        raise HTTPException(404, "No evaluation has been run yet: python -m scripts.evaluate")
+    return path.read_text(encoding="utf-8")

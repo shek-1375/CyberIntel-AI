@@ -16,6 +16,7 @@ question ─┬─► dense search  (Qdrant, meaning)  ─┐
 - **Day 3:** evaluation set (21 questions), Hit@1 / Hit@4 / MRR for every search mode, chunk size experiment, automatic grounding checks on every answer. See [docs/day3-evaluation.md](docs/day3-evaluation.md) and the latest results in [backend/eval/results/latest.md](backend/eval/results/latest.md)
 - **Day 4:** live threat intelligence from NVD, CISA KEV, FIRST EPSS and MITRE ATT&CK; rule-based patch priority; CVE → ATT&CK mapping with reasons; live CVE facts cited in answers. See [docs/day4-threat-intel.md](docs/day4-threat-intel.md)
 - **Day 5:** LangGraph investigation agent (entities → live CVE intel → document evidence → validated ATT&CK mapping → recommendations → report), structure-aware chunking. See [docs/day5-agent.md](docs/day5-agent.md)
+- **Day 6:** React dashboard (Ask, CVE lookup, Investigate, Exploited now, History, Evaluation) and PostgreSQL history via SQLAlchemy. See [docs/day6-dashboard.md](docs/day6-dashboard.md)
 
 ## Project layout
 
@@ -39,7 +40,8 @@ CyberIntel-AI/
 │   │   ├── rag/grounding.py       #    checks answers for invalid citations / invented CVE IDs
 │   │   ├── evaluation/            #    metrics (Hit@k, MRR) and the evaluation runner
 │   │   ├── intel/                 # live threat intel: nvd, kev, epss, attack, risk, routes
-│   │   └── agent/                 # LangGraph investigation agent: state, nodes, graph, report
+│   │   ├── agent/                 # LangGraph investigation agent: state, nodes, graph, report
+│   │   └── db.py                  # PostgreSQL history (SQLAlchemy): investigations, question logs
 │   ├── eval/eval_set.json         # 21 labelled evaluation questions
 │   ├── eval/results/              # evaluation reports
 │   ├── scripts/evaluate.py        # python -m scripts.evaluate
@@ -47,8 +49,9 @@ CyberIntel-AI/
 │   ├── data/documents/            # sample advisories (add your own here)
 │   ├── .env.example
 │   └── requirements.txt
+├── frontend/                      # React + Vite dashboard (npm run dev -> http://localhost:5173)
 ├── docs/                          # day-by-day write-ups
-├── docker-compose.yml             # Qdrant
+├── docker-compose.yml             # Qdrant + PostgreSQL
 └── README.md
 ```
 
@@ -66,8 +69,13 @@ pip install -r requirements.txt
 
 # 3. API key: copy .env.example to .env and add your Gemini key
 
-# 4. Run
-uvicorn app.main:app --reload     # open http://localhost:8000/docs
+# 4. Run the API
+uvicorn app.main:app --reload     # API docs: http://localhost:8000/docs
+
+# 5. Run the dashboard (second terminal, needs Node.js 18+)
+cd frontend
+npm install
+npm run dev                       # open http://localhost:5173
 ```
 
 ## Try it
@@ -102,5 +110,5 @@ python -m pytest -v
 3. ~~Retrieval evaluation (hit rate, MRR) and grounding checks~~
 4. ~~CVE data from NVD / CISA KEV, MITRE ATT&CK mapping~~
 5. ~~LangGraph investigation agent~~
-6. React dashboard, PostgreSQL
+6. ~~React dashboard, PostgreSQL~~
 7. Tests, Docker, deployment

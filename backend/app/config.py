@@ -41,3 +41,7 @@ NVD_API_KEY = os.getenv("NVD_API_KEY", "")            # optional: raises NVD lim
 LIVE_INTEL = os.getenv("LIVE_INTEL", "true").lower() == "true"  # add live NVD/KEV/EPSS facts to /ask for CVE questions
 INTEL_CACHE_DIR = BACKEND_DIR / "data" / "intel"      # downloaded feeds are cached here (not committed to Git)
 HTTP_TIMEOUT = float(os.getenv("HTTP_TIMEOUT", "30"))
+
+# --- Day 6: history database and the web dashboard ---
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+psycopg://cyberintel:cyberintel@localhost:5433/cyberintel")
+FRONTEND_ORIGINS = [o.strip() for o in os.getenv("FRONTEND_ORIGINS", "http://localhost:5173").split(",") if o.strip()]

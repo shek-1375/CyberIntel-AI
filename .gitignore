@@ -11,3 +11,5 @@ backend/data/intel/
 backend/data/documents/cisa-kev-recent.md
 # Day 5: investigation reports saved by scripts/investigate.py
 backend/reports/
+# Day 6: frontend build output
+frontend/dist/
